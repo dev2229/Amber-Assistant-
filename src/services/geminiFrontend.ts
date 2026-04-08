@@ -1,10 +1,16 @@
-import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
-import type { Request, Response } from "express";
-import priceTrendHandler from "./price-trend";
+import { GoogleGenAI, Type, FunctionDeclaration, GenerateContentResponse } from "@google/genai";
+import { getPriceTrend } from "./apiService";
 
-// Server-side access to environment variables
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// Safely get the API key injected by Vite
+const getApiKey = () => {
+  try {
+    return process.env.GEMINI_API_KEY;
+  } catch (e) {
+    return "";
+  }
+};
 
+const GEMINI_API_KEY = getApiKey();
 const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
 
 const priceTrendTool: FunctionDeclaration = {
@@ -50,19 +56,14 @@ France: Paris, Lyon, Marseille, Toulouse.
 Singapore: Central Area, Jurong East, Tampines.
 `;
 
-export default async function handler(req: Request, res: Response) {
+export async function* streamChatWithAmber(messages: any[]) {
   if (!ai) {
-    return res.status(500).json({ error: "Gemini API key is not configured on the server." });
-  }
-
-  const { messages } = req.body;
-
-  if (!messages || !Array.isArray(messages)) {
-    return res.status(400).json({ error: "Invalid messages format." });
+    yield "I'm sorry, but the AI service is not configured correctly. Please check the API key in Settings.";
+    return;
   }
 
   try {
-    const response = await ai.models.generateContent({
+    const stream = await ai.models.generateContentStream({
       model: "gemini-3-flash-preview",
       contents: messages,
       config: {
@@ -90,45 +91,50 @@ Response style:
       }
     });
 
-    const functionCalls = response.functionCalls;
-    if (functionCalls && functionCalls.length > 0) {
-      const call = functionCalls[0];
-      if (call.name === "get_price_trend") {
-        const { city } = call.args as { city: string };
-        
-        // Use the statically imported handler
-        let priceData: any = null;
-        const mockRes = {
-          status: () => ({
-            json: (data: any) => { priceData = data; }
-          })
-        } as any;
-        const mockReq = { query: { city } } as any;
-        
-        await priceTrendHandler(mockReq, mockRes);
+    let fullText = "";
+    let hasFunctionCall = false;
 
-        const modelContent = response.candidates?.[0]?.content;
-        if (!modelContent) throw new Error("No model content in response");
+    for await (const chunk of stream) {
+      const functionCalls = chunk.functionCalls;
+      if (functionCalls && functionCalls.length > 0) {
+        hasFunctionCall = true;
+        const call = functionCalls[0];
+        if (call.name === "get_price_trend") {
+          const { city } = call.args as { city: string };
+          const data = await getPriceTrend(city);
+          
+          // Follow up with the tool result
+          const followUpStream = await ai.models.generateContentStream({
+            model: "gemini-3-flash-preview",
+            contents: [
+              ...messages,
+              chunk.candidates?.[0]?.content || { role: "model", parts: [{ text: "" }] },
+              { role: "user", parts: [{ functionResponse: { name: "get_price_trend", response: data } }] }
+            ],
+            config: {
+              systemInstruction: "Format the price trend data into a friendly, concise recommendation for the student."
+            }
+          });
 
-        const followUp = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: [
-            ...messages,
-            modelContent,
-            { role: "user", parts: [{ functionResponse: { name: "get_price_trend", response: priceData } }] }
-          ],
-          config: {
-            systemInstruction: "Format the price trend data into a friendly, concise recommendation for the student."
+          for await (const followUpChunk of followUpStream) {
+            const text = followUpChunk.text;
+            if (text) {
+              fullText += text;
+              yield text;
+            }
           }
-        });
-        
-        return res.json({ text: followUp.text });
+          return;
+        }
+      }
+
+      const text = chunk.text;
+      if (text) {
+        fullText += text;
+        yield text;
       }
     }
-
-    return res.json({ text: response.text });
   } catch (error) {
-    console.error("Gemini API Error:", error);
-    return res.status(500).json({ error: "Failed to communicate with Gemini API." });
+    console.error("Gemini Frontend Error:", error);
+    throw error;
   }
 }

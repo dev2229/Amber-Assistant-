@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Send, User, Bot, Sparkles, Home, CreditCard, FileText, Smartphone, X } from "lucide-react";
-import { chatWithAmber } from "./services/apiService";
+import { streamChatWithAmber } from "./services/geminiFrontend";
 
 interface Message {
   role: "user" | "model";
@@ -39,17 +39,41 @@ export default function App() {
       }));
       chatHistory.push({ role: "user", parts: [{ text: userMsg }] });
 
-      const text = await chatWithAmber(chatHistory);
+      // Add a placeholder for the model's response
+      setMessages(prev => [...prev, { role: "model", text: "" }]);
       
-      if (text) {
-        setMessages(prev => [...prev, { role: "model", text: text }]);
-      } else {
-        setMessages(prev => [...prev, { role: "model", text: "Sorry, I couldn't generate a response. Please try again." }]);
+      let fullResponse = "";
+      const stream = streamChatWithAmber(chatHistory);
+      
+      for await (const chunk of stream) {
+        fullResponse += chunk;
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = { role: "model", text: fullResponse };
+          return newMessages;
+        });
+      }
+      
+      if (!fullResponse) {
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = { role: "model", text: "Sorry, I couldn't generate a response. Please try again." };
+          return newMessages;
+        });
       }
     } catch (error) {
       console.error("Error sending message:", error);
       const errorMessage = error instanceof Error ? error.message : "I'm having trouble connecting right now. Please check your connection.";
-      setMessages(prev => [...prev, { role: "model", text: errorMessage }]);
+      setMessages(prev => {
+        const newMessages = [...prev];
+        // If we just added an empty model message, replace it with the error
+        if (newMessages[newMessages.length - 1].role === "model" && newMessages[newMessages.length - 1].text === "") {
+          newMessages[newMessages.length - 1] = { role: "model", text: errorMessage };
+        } else {
+          newMessages.push({ role: "model", text: errorMessage });
+        }
+        return newMessages;
+      });
     } finally {
       setIsLoading(false);
     }
