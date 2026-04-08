@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import type { Request, Response } from "express";
+import priceTrendHandler from "./price-trend";
 
 // Server-side access to environment variables
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -95,12 +96,7 @@ Response style:
       if (call.name === "get_price_trend") {
         const { city } = call.args as { city: string };
         
-        // Internal call to our own price-trend API
-        // In a real serverless environment, we might call the handler directly or use a full URL
-        // For simplicity here, we'll just import the handler logic
-        const { default: priceTrendHandler } = await import("./price-trend.ts");
-        
-        // Mocking req/res for the internal handler
+        // Use the statically imported handler
         let priceData: any = null;
         const mockRes = {
           status: () => ({

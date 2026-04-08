@@ -48,7 +48,8 @@ export default function App() {
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      setMessages(prev => [...prev, { role: "model", text: "I'm having trouble connecting right now. Please check your connection." }]);
+      const errorMessage = error instanceof Error ? error.message : "I'm having trouble connecting right now. Please check your connection.";
+      setMessages(prev => [...prev, { role: "model", text: errorMessage }]);
     } finally {
       setIsLoading(false);
     }
@@ -62,27 +63,27 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center p-4 md:p-8 font-sans text-[#1A1A1A]">
+    <div className="h-[100dvh] bg-[#F8F9FA] flex flex-col items-center font-sans text-[#1A1A1A] overflow-hidden">
       {/* Header */}
-      <header className="w-full max-w-2xl flex items-center justify-between mb-8">
+      <header className="w-full max-w-2xl flex items-center justify-between p-4 md:py-6 md:px-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#FF6321] rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-200">
+          <div className="w-10 h-10 bg-[#FF6321] rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-200 shrink-0">
             <Home size={24} />
           </div>
           <div>
-            <h1 className="font-bold text-xl tracking-tight">Amber Assistant</h1>
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">AI Powered Support</p>
+            <h1 className="font-bold text-lg md:text-xl tracking-tight leading-tight">Amber Assistant</h1>
+            <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">AI Powered Support</p>
           </div>
         </div>
         <div className="flex gap-2">
-          <div className="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase tracking-tighter">Live</div>
+          <div className="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase tracking-tighter">Live</div>
         </div>
       </header>
 
       {/* Chat Container */}
-      <main className="w-full max-w-2xl flex-1 bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 flex flex-col overflow-hidden relative">
+      <main className="w-full max-w-2xl flex-1 bg-white md:rounded-3xl shadow-xl shadow-gray-200/50 border-x md:border border-gray-100 flex flex-col overflow-hidden relative mb-0 md:mb-8">
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 scrollbar-hide">
           <AnimatePresence initial={false}>
             {messages.map((msg, i) => (
               <motion.div
@@ -126,14 +127,14 @@ export default function App() {
 
         {/* Quick Actions */}
         {messages.length < 3 && (
-          <div className="px-6 py-4 flex gap-2 overflow-x-auto no-scrollbar">
+          <div className="px-4 md:px-6 py-3 flex gap-2 overflow-x-auto no-scrollbar bg-white/80 backdrop-blur-sm border-t border-gray-50">
             {quickActions.map((action, i) => (
               <button
                 key={i}
                 onClick={() => {
                   setInput(action.query);
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-xs font-medium hover:border-orange-300 hover:text-orange-600 transition-all whitespace-nowrap shadow-sm"
+                className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white border border-gray-200 rounded-full text-[11px] md:text-xs font-medium hover:border-orange-300 hover:text-orange-600 transition-all whitespace-nowrap shadow-sm shrink-0"
               >
                 {action.icon}
                 {action.text}
@@ -143,7 +144,7 @@ export default function App() {
         )}
 
         {/* Input Area */}
-        <div className="p-4 bg-gray-50/50 border-t border-gray-100">
+        <div className="p-3 md:p-4 bg-gray-50/50 border-t border-gray-100">
           <div className="relative flex items-center">
             <input
               type="text"
@@ -151,24 +152,24 @@ export default function App() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               placeholder="Ask about pricing, visas, or bookings..."
-              className="w-full bg-white border border-gray-200 rounded-2xl py-4 pl-6 pr-14 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-inner"
+              className="w-full bg-white border border-gray-200 rounded-xl md:rounded-2xl py-3 md:py-4 pl-4 md:pl-6 pr-12 md:pr-14 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-inner"
             />
             <button
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
-              className="absolute right-2 p-3 bg-[#FF6321] text-white rounded-xl hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-[#FF6321] transition-all shadow-lg shadow-orange-200"
+              className="absolute right-1.5 md:right-2 p-2 md:p-3 bg-[#FF6321] text-white rounded-lg md:rounded-xl hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-[#FF6321] transition-all shadow-lg shadow-orange-200"
             >
               <Send size={18} />
             </button>
           </div>
-          <p className="text-[10px] text-center text-gray-400 mt-3 font-medium">
+          <p className="text-[9px] md:text-[10px] text-center text-gray-400 mt-2 md:mt-3 font-medium">
             Amber AI can make mistakes. Check important info.
           </p>
         </div>
       </main>
 
-      {/* Footer Info */}
-      <footer className="mt-8 text-center text-gray-400 text-xs flex flex-col gap-2">
+      {/* Footer Info - Hidden on small mobile to save space */}
+      <footer className="hidden md:flex mb-8 text-center text-gray-400 text-xs flex-col gap-2">
         <p>© 2026 Amber Student Housing Marketplace</p>
         <div className="flex justify-center gap-4">
           <a href="#" className="hover:text-gray-600">Privacy Policy</a>
