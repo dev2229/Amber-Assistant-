@@ -3,6 +3,7 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import apiRouter from "./server/api";
 
 dotenv.config();
 
@@ -15,27 +16,8 @@ async function startServer() {
 
   app.use(express.json());
 
-  // --- Mock Price Trend API ---
-  app.get("/api/price-trend", async (req, res) => {
-    try {
-      const { default: handler } = await import("./api/price-trend.ts");
-      handler(req, res);
-    } catch (error) {
-      console.error("Error loading API handler:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-    }
-  });
-
-  // --- Gemini Chat API ---
-  app.post("/api/chat", async (req, res) => {
-    try {
-      const { default: handler } = await import("./api/chat.ts");
-      await handler(req, res);
-    } catch (error) {
-      console.error("Error loading Chat handler:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-    }
-  });
+  // Use the new API router
+  app.use("/api", apiRouter);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
