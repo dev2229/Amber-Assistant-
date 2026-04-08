@@ -1,13 +1,18 @@
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 
-// Safety check for process.env in browser
-const apiKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : undefined;
+// Vite replaces process.env.GEMINI_API_KEY with the actual value during build
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-if (!apiKey) {
-  console.warn("GEMINI_API_KEY is not defined. AI features will not work.");
+// Only initialize if we have a valid-looking key
+const isValidKey = GEMINI_API_KEY && 
+                   GEMINI_API_KEY !== "MY_GEMINI_API_KEY" && 
+                   GEMINI_API_KEY !== "";
+
+if (!isValidKey) {
+  console.warn("Amber Assistant: GEMINI_API_KEY is not set or is using the placeholder. AI features will be disabled.");
 }
 
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+const ai = isValidKey ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
 
 const priceTrendTool: FunctionDeclaration = {
   name: "get_price_trend",
@@ -39,6 +44,19 @@ Q: Is the platform available on mobile?
 A: Yes, we have native iOS and Android apps with all core features.
 `;
 
+const COUNTRY_CITY_GUIDE = `
+United Kingdom: London, Manchester, Birmingham, Glasgow, Liverpool.
+Australia: Sydney, Melbourne, Brisbane, Perth, Adelaide.
+Ireland: Dublin, Cork, Galway, Limerick.
+United States: New York, Los Angeles, Chicago, Boston, San Francisco.
+Canada: Toronto, Vancouver, Montreal, Ottawa, Calgary.
+Germany: Berlin, Munich, Hamburg, Frankfurt, Cologne.
+Spain: Madrid, Barcelona, Valencia, Seville.
+New Zealand: Auckland, Wellington, Christchurch.
+France: Paris, Lyon, Marseille, Toulouse.
+Singapore: Central Area, Jurong East, Tampines.
+`;
+
 export async function chatWithAmber(messages: any[]) {
   if (!ai) {
     return "I'm sorry, but the AI service is not configured correctly. Please check the API key.";
@@ -51,14 +69,18 @@ export async function chatWithAmber(messages: any[]) {
         systemInstruction: `You are an AI assistant for Amber Student, a student-housing marketplace.
 Your job is to answer user questions in a concise, friendly tone (max 2-3 sentences).
 Follow this decision tree:
-1. Detect intent: Pricing/best time to book, Visa requirements, General FAQ, or Anything else.
+1. Detect intent: Pricing/best time to book, Visa requirements, Best cities/Housing search, General FAQ, or Anything else.
 2. If pricing/best time to book: Use the get_price_trend tool.
 3. If visa requirements: Use your knowledge to provide specific details (confirmed admission, proof of funds, etc.).
-4. If FAQ: Use the provided FAQ table.
-5. Otherwise: Answer directly.
+4. If best cities/housing search: Use the Country-City Guide to recommend top student cities and explain that Amber Student helps find verified housing near major universities in these locations.
+5. If FAQ: Use the provided FAQ table.
+6. Otherwise: Answer directly.
 
 FAQ Table:
 ${FAQ_TABLE}
+
+Country-City Guide:
+${COUNTRY_CITY_GUIDE}
 
 Response style:
 - Friendly and student-oriented ("Hey there!").
