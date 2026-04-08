@@ -1,17 +1,8 @@
 import { GoogleGenAI, Type, FunctionDeclaration, GenerateContentResponse } from "@google/genai";
 import { getPriceTrend } from "./apiService";
 
-// Safely get the API key injected by Vite
-const getApiKey = () => {
-  try {
-    return process.env.GEMINI_API_KEY;
-  } catch (e) {
-    return "";
-  }
-};
-
-const GEMINI_API_KEY = getApiKey();
-const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
+// Use the exact pattern from the Gemini API skill
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 const priceTrendTool: FunctionDeclaration = {
   name: "get_price_trend",
@@ -57,11 +48,6 @@ Singapore: Central Area, Jurong East, Tampines.
 `;
 
 export async function* streamChatWithAmber(messages: any[]) {
-  if (!ai) {
-    yield "I'm sorry, but the AI service is not configured correctly. Please check the API key in Settings.";
-    return;
-  }
-
   try {
     const stream = await ai.models.generateContentStream({
       model: "gemini-3-flash-preview",
