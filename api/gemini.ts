@@ -14,7 +14,7 @@ function getAiClient() {
   if (!aiClient) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error("Gemini API key is not configured on the server. Please ensure GEMINI_API_KEY is set in your environment variables.");
+      throw new Error("Gemini API key is missing. Please add your GEMINI_API_KEY to the 'Secrets' panel in the Settings menu (gear icon) to enable the AI assistant.");
     }
     aiClient = new GoogleGenAI({ apiKey });
   }
