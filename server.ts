@@ -3,6 +3,7 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import priceTrendHandler from "./api/price-trend.ts";
 
 dotenv.config();
 
@@ -17,17 +18,7 @@ async function startServer() {
 
   // --- Mock Price Trend API ---
   app.get("/api/price-trend", (req, res) => {
-    const city = (req.query.city as string) || "Pune";
-    // Mock data generation
-    const basePrice = city.toLowerCase() === "pune" ? 15000 : 25000;
-    const trend = [
-      basePrice,
-      basePrice - 500,
-      basePrice - 1200,
-      basePrice - 800,
-      basePrice - 200
-    ];
-    res.json({ trend });
+    priceTrendHandler(req, res);
   });
 
   // Vite middleware for development
