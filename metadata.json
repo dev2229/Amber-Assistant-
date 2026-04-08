@@ -1,0 +1,5 @@
+{
+  "name": "Amber Student AI Assistant",
+  "description": "An AI-powered assistant for Amber Student to help students find housing, check price trends, and get visa information.",
+  "requestFramePermissions": []
+}
