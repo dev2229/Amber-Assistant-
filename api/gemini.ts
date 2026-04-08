@@ -6,13 +6,20 @@ import type { Request, Response } from "express";
  * 
  * This function handles Gemini API requests securely on the server side.
  * It uses the GEMINI_API_KEY from the server's environment variables.
- * 
- * NOTE: In this specific preview environment, calling Gemini from the frontend 
- * is often more reliable for streaming and avoiding proxy-related connection issues.
  */
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
+let aiClient: GoogleGenAI | null = null;
+
+function getAiClient() {
+  if (!aiClient) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("Gemini API key is not configured on the server. Please ensure GEMINI_API_KEY is set in your environment variables.");
+    }
+    aiClient = new GoogleGenAI({ apiKey });
+  }
+  return aiClient;
+}
 
 const priceTrendTool: FunctionDeclaration = {
   name: "get_price_trend",
@@ -90,9 +97,12 @@ Decision Tree:
 6. Otherwise: Answer directly using the Advisor persona.`;
 
 export default async function handler(req: Request, res: Response) {
-  if (!ai) {
+  let ai: GoogleGenAI;
+  try {
+    ai = getAiClient();
+  } catch (error) {
     return res.status(500).json({ 
-      error: "Gemini API key is not configured on the server. Please ensure GEMINI_API_KEY is set in your environment variables." 
+      error: error instanceof Error ? error.message : "Internal Server Error" 
     });
   }
 
