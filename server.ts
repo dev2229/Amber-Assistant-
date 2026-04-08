@@ -3,7 +3,6 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
-import priceTrendHandler from "./api/price-trend.ts";
 
 dotenv.config();
 
@@ -17,18 +16,26 @@ async function startServer() {
   app.use(express.json());
 
   // --- Mock Price Trend API ---
-  app.get("/api/price-trend", (req, res) => {
-    priceTrendHandler(req, res);
+  app.get("/api/price-trend", async (req, res) => {
+    try {
+      const { default: handler } = await import("./api/price-trend.ts");
+      handler(req, res);
+    } catch (error) {
+      console.error("Error loading API handler:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
   });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    console.log("Starting in development mode with Vite...");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
+    console.log("Starting in production mode...");
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
@@ -41,4 +48,6 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch(err => {
+  console.error("Failed to start server:", err);
+});

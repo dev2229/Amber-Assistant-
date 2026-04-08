@@ -1,6 +1,13 @@
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+// Safety check for process.env in browser
+const apiKey = typeof process !== 'undefined' && process.env ? process.env.GEMINI_API_KEY : undefined;
+
+if (!apiKey) {
+  console.warn("GEMINI_API_KEY is not defined. AI features will not work.");
+}
+
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 const priceTrendTool: FunctionDeclaration = {
   name: "get_price_trend",
@@ -33,6 +40,9 @@ A: Yes, we have native iOS and Android apps with all core features.
 `;
 
 export async function chatWithAmber(messages: any[]) {
+  if (!ai) {
+    return "I'm sorry, but the AI service is not configured correctly. Please check the API key.";
+  }
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
