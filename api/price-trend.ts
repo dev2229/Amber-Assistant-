@@ -1,10 +1,10 @@
 import type { Request, Response } from 'express';
 
 export default function handler(req: Request, res: Response) {
-  const city = (req.query.city as string) || "Pune";
+  const city = (req.query.city as string) || "London";
   
   // Mock data generation logic
-  const basePrice = city.toLowerCase() === "pune" ? 15000 : 25000;
+  const basePrice = city.toLowerCase() === "london" ? 25000 : 18000;
   const trend = [
     basePrice,
     basePrice - 500,

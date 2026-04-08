@@ -55,7 +55,7 @@ export default function App() {
   };
 
   const quickActions = [
-    { icon: <CreditCard size={16} />, text: "Price trends in Pune", query: "What's the best time to book in Pune?" },
+    { icon: <CreditCard size={16} />, text: "Price trends in London", query: "What's the best time to book in London?" },
     { icon: <FileText size={16} />, text: "Visa for UK", query: "What are the visa requirements for UK?" },
     { icon: <X size={16} />, text: "Cancellation policy", query: "How do I cancel a booking?" },
     { icon: <Smartphone size={16} />, text: "Mobile app", query: "Is there a mobile app?" }

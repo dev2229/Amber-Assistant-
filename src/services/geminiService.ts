@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
+import { getPriceTrend } from "./apiService";
 
 // Vite replaces process.env.GEMINI_API_KEY with the actual value during build
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -20,7 +21,7 @@ const priceTrendTool: FunctionDeclaration = {
   parameters: {
     type: Type.OBJECT,
     properties: {
-      city: { type: Type.STRING, description: "City name, e.g. Pune, London, Sydney" },
+      city: { type: Type.STRING, description: "City name, e.g. London, Sydney, New York" },
       month: { type: Type.INTEGER, description: "Month number 1-12 (optional)" }
     },
     required: ["city"]
@@ -95,9 +96,8 @@ Response style:
       const call = functionCalls[0];
       if (call.name === "get_price_trend") {
         const { city } = call.args as { city: string };
-        // Fetch from our internal API
-        const apiRes = await fetch(`/api/price-trend?city=${encodeURIComponent(city)}`);
-        const data = await apiRes.json();
+        // Fetch from our internal API service
+        const data = await getPriceTrend(city);
         
         // Send back to Gemini to format the answer
         const modelContent = response.candidates?.[0]?.content;
