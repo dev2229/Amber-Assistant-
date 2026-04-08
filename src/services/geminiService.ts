@@ -1,19 +1,30 @@
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { getPriceTrend } from "./apiService";
 
-// Vite replaces process.env.GEMINI_API_KEY with the actual value during build
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+/**
+ * Safely retrieve the API key from the environment.
+ * Vite's 'define' will replace the full string 'process.env.GEMINI_API_KEY'
+ * with the actual key value during the build process.
+ */
+const getApiKey = (): string | undefined => {
+  try {
+    // This exact string is replaced by Vite
+    const key = process.env.GEMINI_API_KEY;
+    return (key && key !== "MY_GEMINI_API_KEY" && key !== "") ? key : undefined;
+  } catch (e) {
+    // If 'process' is not defined and Vite replacement failed
+    return undefined;
+  }
+};
 
-// Only initialize if we have a valid-looking key
-const isValidKey = GEMINI_API_KEY && 
-                   GEMINI_API_KEY !== "MY_GEMINI_API_KEY" && 
-                   GEMINI_API_KEY !== "";
+const GEMINI_API_KEY = getApiKey();
+const isValidKey = !!GEMINI_API_KEY;
 
 if (!isValidKey) {
-  console.warn("Amber Assistant: GEMINI_API_KEY is not set or is using the placeholder. AI features will be disabled.");
+  console.warn("Amber Assistant: GEMINI_API_KEY is not set. AI features will be disabled.");
 }
 
-const ai = isValidKey ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
+const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
 
 const priceTrendTool: FunctionDeclaration = {
   name: "get_price_trend",
