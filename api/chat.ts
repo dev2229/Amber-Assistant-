@@ -1,28 +1,8 @@
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
-import { getPriceTrend } from "./apiService";
+import type { Request, Response } from "express";
 
-/**
- * Safely retrieve the API key from the environment.
- * Vite's 'define' will replace the full string 'process.env.GEMINI_API_KEY'
- * with the actual key value during the build process.
- */
-const getApiKey = (): string | undefined => {
-  try {
-    // This exact string is replaced by Vite
-    const key = process.env.GEMINI_API_KEY;
-    return (key && key !== "MY_GEMINI_API_KEY" && key !== "") ? key : undefined;
-  } catch (e) {
-    // If 'process' is not defined and Vite replacement failed
-    return undefined;
-  }
-};
-
-const GEMINI_API_KEY = getApiKey();
-const isValidKey = !!GEMINI_API_KEY;
-
-if (!isValidKey) {
-  console.warn("Amber Assistant: GEMINI_API_KEY is not set. AI features will be disabled.");
-}
+// Server-side access to environment variables
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
 
@@ -69,10 +49,17 @@ France: Paris, Lyon, Marseille, Toulouse.
 Singapore: Central Area, Jurong East, Tampines.
 `;
 
-export async function chatWithAmber(messages: any[]) {
+export default async function handler(req: Request, res: Response) {
   if (!ai) {
-    return "I'm sorry, but the AI service is not configured correctly. Please check the API key.";
+    return res.status(500).json({ error: "Gemini API key is not configured on the server." });
   }
+
+  const { messages } = req.body;
+
+  if (!messages || !Array.isArray(messages)) {
+    return res.status(400).json({ error: "Invalid messages format." });
+  }
+
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -107,10 +94,23 @@ Response style:
       const call = functionCalls[0];
       if (call.name === "get_price_trend") {
         const { city } = call.args as { city: string };
-        // Fetch from our internal API service
-        const data = await getPriceTrend(city);
         
-        // Send back to Gemini to format the answer
+        // Internal call to our own price-trend API
+        // In a real serverless environment, we might call the handler directly or use a full URL
+        // For simplicity here, we'll just import the handler logic
+        const { default: priceTrendHandler } = await import("./price-trend.ts");
+        
+        // Mocking req/res for the internal handler
+        let priceData: any = null;
+        const mockRes = {
+          status: () => ({
+            json: (data: any) => { priceData = data; }
+          })
+        } as any;
+        const mockReq = { query: { city } } as any;
+        
+        await priceTrendHandler(mockReq, mockRes);
+
         const modelContent = response.candidates?.[0]?.content;
         if (!modelContent) throw new Error("No model content in response");
 
@@ -119,20 +119,20 @@ Response style:
           contents: [
             ...messages,
             modelContent,
-            { role: "user", parts: [{ functionResponse: { name: "get_price_trend", response: data } }] }
+            { role: "user", parts: [{ functionResponse: { name: "get_price_trend", response: priceData } }] }
           ],
           config: {
             systemInstruction: "Format the price trend data into a friendly, concise recommendation for the student."
           }
         });
         
-        return followUp.text;
+        return res.json({ text: followUp.text });
       }
     }
 
-    return response.text;
+    return res.json({ text: response.text });
   } catch (error) {
-    console.error("Gemini Service Error:", error);
-    throw error;
+    console.error("Gemini API Error:", error);
+    return res.status(500).json({ error: "Failed to communicate with Gemini API." });
   }
 }

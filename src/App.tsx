@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Send, User, Bot, Sparkles, Home, CreditCard, FileText, Smartphone, X } from "lucide-react";
-import { chatWithAmber } from "./services/geminiService";
+import { chatWithAmber } from "./services/apiService";
 
 interface Message {
   role: "user" | "model";

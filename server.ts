@@ -26,6 +26,17 @@ async function startServer() {
     }
   });
 
+  // --- Gemini Chat API ---
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const { default: handler } = await import("./api/chat.ts");
+      await handler(req, res);
+    } catch (error) {
+      console.error("Error loading Chat handler:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     console.log("Starting in development mode with Vite...");
